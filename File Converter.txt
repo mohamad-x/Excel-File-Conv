@@ -1,0 +1,42 @@
+# Define the path to the folder containing the Excel files
+$excelFolderPath = "C:\Path\to\Your\Excel\Files"
+
+# Define the path to the folder where you want to save the PDF files
+$pdfFolderPath = "C:\Path\to\Output\PDF\Files"
+
+# Get a list of Excel files in the specified folder.
+# Make sure to  change the extension after the (*) to match your files. 
+$excelFiles = Get-ChildItem -Path $excelFolderPath -Filter *.xlsx
+
+# Create a new Excel application object
+$excelApp = New-Object -ComObject Excel.Application
+
+# Loop through each Excel file in the folder
+foreach ($excelFile in $excelFiles) {
+    # Open the Excel file
+    $workbook = $excelApp.Workbooks.Open($excelFile.FullName)
+
+    # Remove Secure View if Found
+    $workbook.RemoveDocumentInformation(1)  # 1 corresponds to removing Secure View
+
+    # Define the PDF file path
+    $pdfFilePath = Join-Path -Path $pdfFolderPath -ChildPath ($excelFile.BaseName + ".pdf")
+
+    # Save the Excel file as a PDF
+    $workbook.SaveAs($pdfFilePath, 57)  # 57 corresponds to PDF format
+
+    # Close the Excel file without saving changes
+    $workbook.Close($false)
+}
+
+# Close Excel application
+$excelApp.Quit()
+
+# Release the COM objects
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($workbook) | Out-Null
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($excelApp) | Out-Null
+
+# Clean up any remaining Excel processes
+Get-Process | Where-Object { $_.ProcessName -eq "EXCEL" } | ForEach-Object { $_.Kill() }
+
+Write-Host "Conversion completed."
